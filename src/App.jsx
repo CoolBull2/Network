@@ -1,0 +1,26 @@
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Sidebar2 from './components/Sidebar2';
+import Dashboard from './pages/Dashboard';
+import Issues from './pages/Issues';
+import Reports from './pages/Reports';
+
+
+function App() {
+  return (
+    <Router>
+      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+        <Sidebar2 />
+        <main className="flex-1">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/issues" element={<Issues/>}/>
+            <Route path="/reports" element={<Reports/>}/>
+          </Routes>
+        </main>
+      </div>
+    </Router>
+  );
+}
+
+export default App;
