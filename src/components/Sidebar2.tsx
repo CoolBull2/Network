@@ -1,6 +1,5 @@
-import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, AlertCircle, FileText, Settings } from 'lucide-react';
+import { Home, AlertCircle, FileText } from 'lucide-react';
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -8,14 +7,14 @@ const Sidebar = () => {
 
   const menuItems = [
     { path: '/', label: 'Dashboard', icon: <Home className="w-5 h-5" /> },
-    { path: '/issues', label: 'Issues', icon: <AlertCircle className="w-5 h-5" /> },
-    { path: '/reports', label: 'Reports', icon: <FileText className="w-5 h-5" /> },
+    { path: '/issues', label: 'Common Fixes', icon: <AlertCircle className="w-5 h-5" /> },
+    { path: '/reports', label: 'Reports', icon: <FileText className="w-5 h-5" /> }
   ];
 
   return (
-    <div className="h-screen w-64 bg-white/80 dark:bg-gray-800/80 shadow-lg">
+    <div className="fixed top-0 left-0 h-screen w-64 bg-white/80 dark:bg-gray-800/80 shadow-lg z-50">
       <div className="p-6">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Network Troubleshooting</h2>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Network Doctor</h2>
       </div>
       <nav className="mt-6">
         {menuItems.map((item) => (

@@ -6,3 +6,12 @@ Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+all the diffrent dns servers from which we check which dns has the best ping and low packet loss
+
+Google	8.8.8.8 	8.8.4.4
+Control D	76.76.2.0   76.76.10.0
+Quad9	9.9.9.9     149.112.112.112
+Cloudflare	1.1.1.1 	1.0.0.1
+
+used shadcn for background aurora light

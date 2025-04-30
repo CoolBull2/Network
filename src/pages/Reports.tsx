@@ -1,32 +1,92 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { AuroraBackground } from '../components/ui/aurora-background';
-import { motion } from 'framer-motion';
-import { FileText, Download, Share2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FileText, AlertCircle, Loader2 } from 'lucide-react';
+import { useReportStore } from '../store/reportStore';
+import { ReportCard } from '../components/ReportCard';
+import { NetworkMetricsChart } from '../components/NetworkMetricsChart';
+import axios from 'axios';
 
 function Reports() {
-  const reports = [
-    {
-      id: 1,
-      title: 'Network Performance Report',
-      date: '2024-02-28',
-      status: 'Completed',
-      type: 'Performance'
-    }, 
-    {
-      id: 2,
-      title: 'Connectivity Analysis',
-      date: '2024-02-27',
-      status: 'Completed',
-      type: 'Connectivity'
-    },
-    {
-      id: 3,
-      title: 'DNS Resolution Test',
-      date: '2024-02-26',
-      status: 'In Progress',
-      type: 'DNS'
+  const { reports, isLoading, fetchReports, addReport, deleteReport } = useReportStore();
+  const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
+
+  const generateNewReport = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await axios.get('http://127.0.0.1:5000/network-health');
+      const networkData = response.data;
+      
+      // Extract latency and packet loss from the response
+      const latencyMatch = networkData.reason.match(/(\d+\.?\d*)\s*ms/);
+      const packetLossMatch = networkData.reason.match(/(\d+)\s*%\s*packet loss/);
+      
+      const latency = latencyMatch ? parseFloat(latencyMatch[1]) : 0;
+      const packetLoss = packetLossMatch ? parseInt(packetLossMatch[1]) : 0;
+      
+      // Estimate bandwidth based on latency (this is a simplified estimation)
+      const bandwidth = Math.max(1000 - latency * 2, 100);
+
+      const newReport = {
+        title: `Network Performance Report`,
+        status: networkData.status === 'healthy' ? 'Completed' : networkData.status === 'warning' ? 'In Progress' : 'Failed',
+        type: 'Performance',
+        details: {
+          latency,
+          packetLoss,
+          bandwidth,
+          dnsResolution: networkData.status !== 'critical',
+        },
+        summary: networkData.reason,
+      };
+
+      await addReport(newReport);
+    } catch (error) {
+      // Add error report
+      await addReport({
+        title: 'Network Analysis Failed',
+        status: 'Failed',
+        type: 'Error',
+        details: {
+          latency: 0,
+          packetLoss: 100,
+          bandwidth: 0,
+          dnsResolution: false,
+        },
+        summary: 'Failed to connect to network analysis service.',
+      });
+    } finally {
+      setIsGenerating(false);
     }
-  ];
+  };
+
+  const handleDeleteReport = async (id: string) => {
+    if (selectedReport === id) {
+      setSelectedReport(null);
+    }
+    await deleteReport(id);
+  };
+
+  const chartData = {
+    labels: reports.slice(0, 10).map(r => r.date.split(' ')[0]).reverse(),
+    latency: reports.slice(0, 10).map(r => r.details.latency).reverse(),
+    packetLoss: reports.slice(0, 10).map(r => r.details.packetLoss).reverse(),
+  };
+
+  if (isLoading) {
+    return (
+      <AuroraBackground>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        </div>
+      </AuroraBackground>
+    );
+  }
 
   return (
     <AuroraBackground>
@@ -39,53 +99,50 @@ function Reports() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Network Reports
           </h1>
-          <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Generate New Report
+          <button
+            onClick={generateNewReport}
+            disabled={isGenerating}
+            className={`px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 ${
+              isGenerating ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <FileText className={`w-5 h-5 ${isGenerating ? 'animate-spin' : ''}`} />
+            {isGenerating ? 'Generating...' : 'Generate New Report'}
           </button>
         </div>
 
-        <div className="grid gap-4">
-          {reports.map((report) => (
-            <motion.div
-              key={report.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    {report.title}
-                  </h3>
-                  <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
-                    <span>{report.date}</span>
-                    <span>•</span>
-                    <span>{report.type}</span>
-                    <span>•</span>
-                    <span
-                      className={`${
-                        report.status === 'Completed'
-                          ? 'text-green-500'
-                          : 'text-yellow-500'
-                      }`}
-                    >
-                      {report.status}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
-                    <Download className="w-5 h-5" />
-                  </button>
-                  <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
-                    <Share2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        {reports.length > 0 ? (
+          <>
+            <div className="mb-8">
+              <NetworkMetricsChart data={chartData} />
+            </div>
+
+            <div className="grid gap-4">
+              <AnimatePresence>
+                {reports.map((report) => (
+                  <ReportCard
+                    key={report.id}
+                    report={report}
+                    onDelete={handleDeleteReport}
+                    onView={(id) => setSelectedReport(id)}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          </>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center gap-4 p-8 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg"
+          >
+            <AlertCircle className="w-12 h-12 text-gray-400" />
+            <p className="text-gray-600 dark:text-gray-300">No reports available</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Generate a new report to see network performance metrics
+            </p>
+          </motion.div>
+        )}
       </motion.div>
     </AuroraBackground>
   );

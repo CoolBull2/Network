@@ -1,38 +1,39 @@
-"use client";
-
-import React, { useState } from "react";
-import axios from "axios";
-import { AuroraBackground } from "../components/ui/aurora-background";
-import { motion } from "framer-motion";
-import {Activity , RefreshCw, FileText} from 'lucide-react'
-import {NetworkStatus} from '../components/NetworkStatus'
+import { useState } from 'react';
+import axios from 'axios';
+import { NetworkStatus } from '../components/NetworkStatus';
+import { DiagnosticPanel } from '../components/DiagnosticPanel';
+import { AuroraBackground } from '../components/ui/aurora-background';
+import { motion } from 'framer-motion';
+import { Activity } from 'lucide-react';
+import { NetworkDiagnostics, DiagnosticResult } from '../lib/diagnostics';
 
 function Dashboard() {
-  const [status, setStatus] = useState(null);
-  const [report, setReport] = useState(null); // Store ping & packet loss details
-  const [isLoading,setIsLoading] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [report, setReport] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [diagnosticResults, setDiagnosticResults] = useState<DiagnosticResult[]>([]);
 
   const runDiagnostics = async () => {
-    setStatus("checking");
     setIsLoading(true);
+    setStatus('checking');
     try {
-      const response = await axios.get("http://127.0.0.1:5000/network-health");
+      // Run network health check
+      const response = await axios.get('http://127.0.0.1:5000/network-health');
       setStatus(response.data.status);
-      setReport(null); // Reset report when running diagnostics
-    } catch (error) {
-      setStatus("critical");
-    }
-    finally {
-      setIsLoading(false);
-    }
-  };
+      setReport(response.data.reason);
 
-  const generateReport = async () => {
-    try {
-      const response = await axios.get("http://127.0.0.1:5000/network-health");
-      setReport(response.data.reason); // Store ping & packet loss details
+      // Run diagnostic tests
+      const results = await NetworkDiagnostics.runSmartTests();
+      setDiagnosticResults(results);
+
+
+      // Generate fix suggestions
     } catch (error) {
-      setReport("Error fetching report.");
+      setStatus('critical');
+      setReport('Error fetching report.');
+      setDiagnosticResults([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -62,14 +63,7 @@ function Dashboard() {
               className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
             >
               <Activity className="w-5 h-5" />
-              Run Diagnostics
-            </button>
-            <button
-              onClick={generateReport}
-              className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <FileText className="w-5 h-5" />
-              Generate Report
+              {isLoading ? 'Running Diagnostics...' : 'Run Diagnostics'}
             </button>
           </div>
 
@@ -82,9 +76,12 @@ function Dashboard() {
               <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
                 Network Report
               </h3>
-              <p className="text-gray-700 dark:text-gray-300">{report}</p>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">{report}</p>
             </motion.div>
           )}
+          <DiagnosticPanel 
+            diagnosticResults={diagnosticResults}
+          />
         </div>
       </motion.div>
     </AuroraBackground>
